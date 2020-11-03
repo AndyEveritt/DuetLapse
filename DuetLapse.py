@@ -146,7 +146,7 @@ def init():
         print('Device at '+duet+' either did not respond or is not a Duet V2 or V3 printer.')
         exit(2)
 
-    print("Connected to a printer at "+printer._base_url)
+    print("Connected to a printer at "+printer.base_url())
 
     # Tell user options in use. 
     print()
