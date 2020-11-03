@@ -34,12 +34,15 @@ Other Features:
 - [X] Allow override of command line switches for ffmpeg 
 
 ## Installation
-* mkdir DuetLapse
-* cd DuetLapse
-* wget https://raw.githubusercontent.com/DanalEstes/DuetLapse/master/DuetLapse.py
-* chmod 744 DuetLapse.py
-* wget https://raw.githubusercontent.com/DanalEstes/DuetWebAPI/master/DuetWebAPI.py
-
+```
+mkdir DuetLapse
+cd DuetLapse
+wget https://raw.githubusercontent.com/DanalEstes/DuetLapse/master/DuetLapse.py
+chmod 744 DuetLapse.py
+python -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+```
 
 ## Corequisites 
 

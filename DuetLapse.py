@@ -13,26 +13,13 @@
 # The Duet printer must be RepRap firmware V2 or V3 and must be network reachable. 
 #
 
+import argparse
 import subprocess
 import sys
-import argparse
 import time
-try: 
-    import DuetWebAPI as DWA
-except ImportError:
-    print("Python Library Module 'DuetWebAPI.py' is required. ")
-    print("Obtain from https://github.com/DanalEstes/DuetWebAPI ")
-    print("Place in same directory as script, or in Python libpath.")
-    exit(2)
 
-try: 
-    import numpy as np
-except ImportError:
-    print("Python Library Module 'numpy' is required. ")
-    print("Obtain via 'sudo python3 -m pip install numpy'")
-    print("Obtain pip via 'sudo apt install python-pip'")
-    exit(2)
-
+import numpy as np
+from duetwebapi import DuetWebAPI as DWA
 
 # Globals.
 zo = -1                 # Z coordinate old
@@ -153,13 +140,13 @@ def init():
 
     print('Attempting to connect to printer at '+duet)
     global printer
-    printer = DWA.DuetWebAPI('http://'+duet)
-    if (not printer.printerType()):
+    try:
+        printer =  DWA('http://'+duet)
+    except ValueError:
         print('Device at '+duet+' either did not respond or is not a Duet V2 or V3 printer.')
         exit(2)
-    printer = DWA.DuetWebAPI('http://'+duet)
 
-    print("Connected to a Duet V"+str(printer.printerType())+" printer at "+printer.baseURL())
+    print("Connected to a printer at "+printer._base_url)
 
     # Tell user options in use. 
     print()
@@ -190,19 +177,19 @@ def checkForcePause():
     if (alreadyPaused): return
     if (not 'yes' in pause): return
     print('Requesting pause via M25')
-    printer.gCode('M25')    # Ask for a pause
-    printer.gCode('M400')   # Make sure the pause finishes
+    printer.send_code('M25')    # Ask for a pause
+    printer.send_code('M400')   # Make sure the pause finishes
     alreadyPaused = True 
     if(not movehead == [0.0,0.0]):
         print('Moving print head to X{0:4.2f} Y{1:4.2f}'.format(movehead[0],movehead[1]))
-        printer.gCode('G1 X{0:4.2f} Y{1:4.2f}'.format(movehead[0],movehead[1]))
-        printer.gCode('M400')   # Make sure the move finishes
+        printer.send_code('G1 X{0:4.2f} Y{1:4.2f}'.format(movehead[0],movehead[1]))
+        printer.send_code('M400')   # Make sure the move finishes
 
 def unPause():
     global alreadyPaused
     if (alreadyPaused):
         print('Requesting un pause via M24')
-        printer.gCode('M24')
+        printer.send_code('M24')
 
 def onePhoto():
     global frame
@@ -236,11 +223,11 @@ def oneInterval():
     global frame
     if ('layer' in detect):
         global zo
-        zn=printer.getLayer()
+        zn=printer.get_layer()
         if (not zn == zo):
             # Layer changed, take a picture.
             checkForcePause()
-            print('Capturing frame {0:5d} at X{1:4.2f} Y{2:4.2f} Z{3:4.2f} Layer {4:d}'.format(int(np.around(frame)),printer.getCoords()['X'],printer.getCoords()['Y'],printer.getCoords()['Z'],zn))
+            print('Capturing frame {0:5d} at X{1:4.2f} Y{2:4.2f} Z{3:4.2f} Layer {4:d}'.format(int(np.around(frame)),printer.get_coords()['X'],printer.get_coords()['Y'],printer.get_coords()['Z'],zn))
             onePhoto()
         zo = zn
     global timePriorPhoto
@@ -251,13 +238,13 @@ def oneInterval():
         print('Capturing frame {0:5d} after {1:4.2f} seconds elapsed.'.format(int(np.around(frame)),elap))
         onePhoto()
 
-    if (('pause' in detect) and ('paused' in printer.getStatus()) and not alreadyPaused):
+    if (('pause' in detect) and ('paused' in printer.get_status()) and not alreadyPaused):
             alreadyPaused = True
             print('Pause Detected, capturing frame {0:5d}'.format(int(np.around(frame)),elap))
             onePhoto()
             unPause()   
 
-    if (alreadyPaused and (not 'paused' in printer.getStatus()) ):
+    if (alreadyPaused and (not 'paused' in printer.get_status()) ):
         alreadyPaused = False
          
 
@@ -298,7 +285,7 @@ timePriorPhoto = time.time()
 try: 
     while(1):
         time.sleep(.77)            # Intentionally not evenly divisible into one second. 
-        status=printer.getStatus()
+        status=printer.get_status()
 
         if (printerState == 0):     # Idle before print started. 
             if (dontwait):
